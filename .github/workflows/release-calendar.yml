@@ -94,6 +94,26 @@ jobs:
           echo "date=${PR_DATE}" >> "$GITHUB_OUTPUT"
           echo "branch_name=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
 
+          MISSING_BRANCHES=()
+          if ! git ls-remote --exit-code --heads origin dev >/dev/null 2>&1; then
+            MISSING_BRANCHES+=("dev")
+          fi
+          if ! git ls-remote --exit-code --heads origin staging >/dev/null 2>&1; then
+            MISSING_BRANCHES+=("staging")
+          fi
+
+          if [ "${#MISSING_BRANCHES[@]}" -gt 0 ]; then
+            MISSING_BRANCHES_CSV=$(IFS=,; echo "${MISSING_BRANCHES[*]}")
+            echo "release_branches_ready=false" >> "$GITHUB_OUTPUT"
+            echo "missing_branches=${MISSING_BRANCHES_CSV}" >> "$GITHUB_OUTPUT"
+            echo "existing_pr=" >> "$GITHUB_OUTPUT"
+            echo "Skipping dev to staging release PR because required branches are missing: ${MISSING_BRANCHES_CSV}"
+            exit 0
+          fi
+
+          echo "release_branches_ready=true" >> "$GITHUB_OUTPUT"
+          echo "missing_branches=" >> "$GITHUB_OUTPUT"
+
           echo "Checking for existing pull requests from ${BRANCH_NAME} to staging..."
           EXISTING_PR=$(gh pr list --base staging --head "${BRANCH_NAME}" --state open --limit 1 --json number --jq '.[0].number // ""')
           echo "existing_pr=${EXISTING_PR}" >> "$GITHUB_OUTPUT"
@@ -109,8 +129,13 @@ jobs:
         run: |
           echo "Release PR already exists: #${{ steps.check_dev_staging.outputs.existing_pr }}"
 
+      - name: Log missing release branches
+        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.check_dev_staging.outputs.release_branches_ready != 'true' }}
+        run: |
+          echo "Skipping release PR creation because required branches are missing: ${{ steps.check_dev_staging.outputs.missing_branches }}"
+
       - name: Ensure release labels exist
-        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.check_dev_staging.outputs.existing_pr == '' }}
+        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.check_dev_staging.outputs.release_branches_ready == 'true' && steps.check_dev_staging.outputs.existing_pr == '' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
@@ -123,7 +148,7 @@ jobs:
           done
 
       - name: Create release branch from dev
-        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.check_dev_staging.outputs.existing_pr == '' }}
+        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.check_dev_staging.outputs.release_branches_ready == 'true' && steps.check_dev_staging.outputs.existing_pr == '' }}
         env:
           BRANCH_NAME: ${{ steps.check_dev_staging.outputs.branch_name }}
         shell: bash
@@ -154,7 +179,7 @@ jobs:
           fi
 
       - name: Read app version
-        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.check_dev_staging.outputs.existing_pr == '' }}
+        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.check_dev_staging.outputs.release_branches_ready == 'true' && steps.check_dev_staging.outputs.existing_pr == '' }}
         id: app_version
         shell: bash
         run: |
@@ -169,7 +194,7 @@ jobs:
           PY
 
       - name: Create dev to staging release PR
-        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.check_dev_staging.outputs.existing_pr == '' }}
+        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.check_dev_staging.outputs.release_branches_ready == 'true' && steps.check_dev_staging.outputs.existing_pr == '' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_DATE: ${{ steps.check_dev_staging.outputs.date }}
@@ -288,6 +313,17 @@ jobs:
           PR_DATE=$(date +%Y-%m-%d)
           echo "date=${PR_DATE}" >> "$GITHUB_OUTPUT"
 
+          if ! git ls-remote --exit-code --heads origin staging >/dev/null 2>&1; then
+            echo "staging_branch_missing=true" >> "$GITHUB_OUTPUT"
+            echo "staging_not_ahead=true" >> "$GITHUB_OUTPUT"
+            echo "commits=0" >> "$GITHUB_OUTPUT"
+            echo "existing_pr=" >> "$GITHUB_OUTPUT"
+            echo "Skipping staging to main release PR because remote branch staging does not exist."
+            exit 0
+          fi
+
+          echo "staging_branch_missing=false" >> "$GITHUB_OUTPUT"
+
           echo "Fetching latest branches..."
           git fetch origin main staging
 
@@ -313,9 +349,14 @@ jobs:
           fi
 
       - name: Log staging up to date
-        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.production_status.outputs.staging_not_ahead == 'true' }}
+        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.production_status.outputs.staging_branch_missing != 'true' && steps.production_status.outputs.staging_not_ahead == 'true' }}
         run: |
           echo "Staging branch is up to date with main. Skipping production release PR creation."
+
+      - name: Log missing staging branch
+        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.production_status.outputs.staging_branch_missing == 'true' }}
+        run: |
+          echo "Skipping production release PR creation because staging branch does not exist."
 
       - name: Log existing PR
         if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.production_status.outputs.existing_pr != '' }}
@@ -323,7 +364,7 @@ jobs:
           echo "Production release PR already exists: #${{ steps.production_status.outputs.existing_pr }}"
 
       - name: Ensure release labels exist
-        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.production_status.outputs.staging_not_ahead != 'true' && steps.production_status.outputs.existing_pr == '' }}
+        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.production_status.outputs.staging_branch_missing != 'true' && steps.production_status.outputs.staging_not_ahead != 'true' && steps.production_status.outputs.existing_pr == '' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
@@ -336,7 +377,7 @@ jobs:
           done
 
       - name: Read app version
-        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.production_status.outputs.staging_not_ahead != 'true' && steps.production_status.outputs.existing_pr == '' }}
+        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.production_status.outputs.staging_branch_missing != 'true' && steps.production_status.outputs.staging_not_ahead != 'true' && steps.production_status.outputs.existing_pr == '' }}
         id: app_version
         shell: bash
         run: |
@@ -351,7 +392,7 @@ jobs:
           PY
 
       - name: Create staging to main release PR
-        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.production_status.outputs.staging_not_ahead != 'true' && steps.production_status.outputs.existing_pr == '' }}
+        if: ${{ steps.guard_schedule.outputs.continue == 'true' && steps.production_status.outputs.staging_branch_missing != 'true' && steps.production_status.outputs.staging_not_ahead != 'true' && steps.production_status.outputs.existing_pr == '' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_DATE: ${{ steps.production_status.outputs.date }}
