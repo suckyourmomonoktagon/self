@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 // NOTE: Converts to Apache-2.0 on 2029-06-11 per LICENSE.
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Alert, ScrollView } from 'react-native';
 import { Button, Text, XStack, YStack } from 'tamagui';
+import { useFocusEffect } from '@react-navigation/native';
 
 import {
   slate200,
@@ -50,9 +51,11 @@ const DevApduCaptureScreen: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    refreshTapes().catch(() => undefined);
-  }, [refreshTapes]);
+  useFocusEffect(
+    useCallback(() => {
+      refreshTapes().catch(() => undefined);
+    }, [refreshTapes]),
+  );
 
   const handlePreview = useCallback(async (tape: FixtureTapeSummary) => {
     const json = await readTape(tape.name);
