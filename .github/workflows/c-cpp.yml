@@ -3,18 +3,14 @@ name: C/C++ CI
 on:
   push:
     branches: [ "main" ]
-    paths:
+    paths: &autotools_paths
       - "configure"
       - "configure.ac"
       - "Makefile"
       - "Makefile.am"
   pull_request:
     branches: [ "main" ]
-    paths:
-      - "configure"
-      - "configure.ac"
-      - "Makefile"
-      - "Makefile.am"
+    paths: *autotools_paths
 
 jobs:
   build:
