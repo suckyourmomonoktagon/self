@@ -11,8 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate dedicated native/mobile CI workflows exist
+      - name: Validate no root autotools entrypoints exist
         run: |
-          test -f .github/workflows/native-shells-ci.yml
-          test -f .github/workflows/mobile-sdk-ci.yml
-          echo "Root autotools build is not used in this repository."
+          if [ -f ./configure ] || [ -f ./configure.ac ] || [ -f ./Makefile ] || [ -f ./Makefile.am ]; then
+            echo "::error::Root autotools files were detected. Update .github/workflows/c-cpp.yml to run the actual root C/C++ build."
+            exit 1
+          fi
+          echo "No root autotools entrypoints found; skipping root C/C++ build."
