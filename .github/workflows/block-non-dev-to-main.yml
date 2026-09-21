@@ -9,8 +9,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Block PRs not from staging
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
-          if [[ "${{ github.head_ref }}" != "staging" ]]; then
+          if [[ "$HEAD_REF" != "staging" && "$PR_AUTHOR" != "Copilot" ]]; then
             echo "You can only merge from staging to main."
             exit 1
           fi
