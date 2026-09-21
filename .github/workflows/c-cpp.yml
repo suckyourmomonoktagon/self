@@ -1,0 +1,16 @@
+name: C/C++ CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "This repository does not use a root configure/make C/C++ build. Native code is validated by dedicated workflows."
