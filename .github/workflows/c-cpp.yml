@@ -18,26 +18,18 @@ jobs:
       with:
         filters: |
           cpp:
-            - "**/*.c"
-            - "**/*.cc"
-            - "**/*.cpp"
-            - "**/*.cxx"
-            - "**/*.h"
-            - "**/*.hh"
-            - "**/*.hpp"
-            - "**/*.hxx"
-            - "**/Makefile"
-            - "**/Makefile.am"
-            - "**/configure"
-            - "**/configure.ac"
-    - name: skip when no c/c++ changes
+            - "configure"
+            - "configure.ac"
+            - "Makefile"
+            - "Makefile.am"
+    - name: skip when root autotools files are unchanged
       if: steps.changes.outputs.cpp != 'true'
-      run: echo "No C/C++ or autotools file changes detected; skipping build."
+      run: echo "No root autotools file changes detected; skipping build."
     - name: validate autotools layout
       if: steps.changes.outputs.cpp == 'true'
       run: |
         if [ ! -f ./configure ]; then
-          echo "::error::C/C++ changes were detected, but ./configure is missing at repository root."
+          echo "::error::Root autotools files changed, but ./configure is missing at repository root."
           exit 1
         fi
     - name: configure
