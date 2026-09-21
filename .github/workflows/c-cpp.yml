@@ -13,24 +13,42 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: detect autotools project
-      id: detect
+    - uses: dorny/paths-filter@v3
+      id: changes
+      with:
+        filters: |
+          cpp:
+            - "**/*.c"
+            - "**/*.cc"
+            - "**/*.cpp"
+            - "**/*.cxx"
+            - "**/*.h"
+            - "**/*.hh"
+            - "**/*.hpp"
+            - "**/*.hxx"
+            - "**/Makefile"
+            - "**/Makefile.am"
+            - "**/configure"
+            - "**/configure.ac"
+    - name: skip when no c/c++ changes
+      if: steps.changes.outputs.cpp != 'true'
+      run: echo "No C/C++ or autotools file changes detected; skipping build."
+    - name: validate autotools layout
+      if: steps.changes.outputs.cpp == 'true'
       run: |
-        if [ -f ./configure ]; then
-          echo "has_configure=true" >> "$GITHUB_OUTPUT"
-        else
-          echo "has_configure=false" >> "$GITHUB_OUTPUT"
-          echo "No ./configure script found at repository root; skipping autotools build steps."
+        if [ ! -f ./configure ]; then
+          echo "::error::C/C++ changes were detected, but ./configure is missing at repository root."
+          exit 1
         fi
     - name: configure
-      if: steps.detect.outputs.has_configure == 'true'
+      if: steps.changes.outputs.cpp == 'true'
       run: ./configure
     - name: make
-      if: steps.detect.outputs.has_configure == 'true'
+      if: steps.changes.outputs.cpp == 'true'
       run: make
     - name: make check
-      if: steps.detect.outputs.has_configure == 'true'
+      if: steps.changes.outputs.cpp == 'true'
       run: make check
     - name: make distcheck
-      if: steps.detect.outputs.has_configure == 'true'
+      if: steps.changes.outputs.cpp == 'true'
       run: make distcheck
