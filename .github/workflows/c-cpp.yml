@@ -18,10 +18,10 @@ jobs:
       with:
         filters: |
           cpp:
-            - "configure"
-            - "configure.ac"
-            - "Makefile"
-            - "Makefile.am"
+            - "/configure"
+            - "/configure.ac"
+            - "/Makefile"
+            - "/Makefile.am"
     - name: skip when root autotools files are unchanged
       if: steps.changes.outputs.cpp != 'true'
       run: echo "No root autotools file changes detected; skipping build."
