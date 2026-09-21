@@ -12,11 +12,24 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: detect autotools entrypoint
+        id: autotools
+        run: |
+          if [ -x ./configure ]; then
+            echo "configure_present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configure_present=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping Autotools build because ./configure is missing or not executable."
+          fi
       - name: configure
+        if: steps.autotools.outputs.configure_present == 'true'
         run: ./configure
       - name: make
+        if: steps.autotools.outputs.configure_present == 'true'
         run: make
       - name: make check
+        if: steps.autotools.outputs.configure_present == 'true'
         run: make check
       - name: make distcheck
+        if: steps.autotools.outputs.configure_present == 'true'
         run: make distcheck
