@@ -13,11 +13,34 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - uses: dorny/paths-filter@v3
+      id: changes
+      with:
+        filters: |
+          cpp:
+            - "/configure"
+            - "/configure.ac"
+            - "/Makefile"
+            - "/Makefile.am"
+    - name: skip when root autotools files are unchanged
+      if: steps.changes.outputs.cpp != 'true'
+      run: echo "No root autotools file changes detected; skipping build."
+    - name: validate autotools layout
+      if: steps.changes.outputs.cpp == 'true'
+      run: |
+        if [ ! -f ./configure ]; then
+          echo "::error::Root autotools files changed, but ./configure is missing at repository root."
+          exit 1
+        fi
     - name: configure
+      if: steps.changes.outputs.cpp == 'true'
       run: ./configure
     - name: make
+      if: steps.changes.outputs.cpp == 'true'
       run: make
     - name: make check
+      if: steps.changes.outputs.cpp == 'true'
       run: make check
     - name: make distcheck
+      if: steps.changes.outputs.cpp == 'true'
       run: make distcheck
