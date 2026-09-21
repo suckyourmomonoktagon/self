@@ -10,5 +10,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: No root autotools build in this repository
-        run: echo "Skipping root C/C++ autotools build. Native/mobile code is validated by dedicated workflows."
+      - uses: actions/checkout@v4
+      - name: Validate dedicated native/mobile CI workflows exist
+        run: |
+          test -f .github/workflows/native-shells-ci.yml
+          test -f .github/workflows/mobile-sdk-ci.yml
+          echo "Root autotools build is not used in this repository."
