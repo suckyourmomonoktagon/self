@@ -11,14 +11,5 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-      - name: Run Autotools build when available
-        run: |
-          if [[ -x ./configure ]]; then
-            ./configure
-            make
-            make check
-            make distcheck
-          else
-            echo "No ./configure script found; skipping C/C++ Autotools build."
-          fi
+      - name: Skip placeholder workflow
+        run: echo "No root autotools C/C++ project. Native/mobile validation runs in dedicated workflows."
