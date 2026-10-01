@@ -11,5 +11,5 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: No root C/C++ build in this repository
-        run: echo "No root ./configure or make targets exist; native code is covered by dedicated workflows."
+      - name: Skip placeholder workflow
+        run: echo "No root autotools C/C++ project. Native/mobile validation runs in dedicated workflows."
