@@ -9,14 +9,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-      - name: configure
-        run: ./configure
-      - name: make
-        run: make
-      - name: make check
-        run: make check
-      - name: make distcheck
-        run: make distcheck
+      - name: Validate no root autotools entrypoints exist
+        run: |
+          if [ -f ./configure ] || [ -f ./configure.ac ] || [ -f ./Makefile ] || [ -f ./Makefile.am ]; then
+            echo "::error::Root autotools files were detected. Update .github/workflows/c-cpp.yml to run the actual root C/C++ build."
+            exit 1
+          fi
+          echo "No root autotools entrypoints found; skipping root C/C++ build."
