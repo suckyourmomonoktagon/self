@@ -1,0 +1,15 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Skip placeholder workflow
+        run: echo "No root autotools C/C++ project. Native/mobile validation runs in dedicated workflows."
